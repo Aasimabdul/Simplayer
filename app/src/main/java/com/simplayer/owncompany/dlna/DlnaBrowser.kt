@@ -13,7 +13,6 @@ import org.fourthline.cling.model.meta.Device
 import org.fourthline.cling.model.meta.RemoteDevice
 import org.fourthline.cling.model.meta.Service
 import org.fourthline.cling.model.types.UDAServiceType
-import org.fourthline.cling.model.types.UnsignedIntegerFourBytes
 import org.fourthline.cling.registry.Registry
 import org.fourthline.cling.registry.RegistryListener
 import org.fourthline.cling.support.contentdirectory.callback.Browse
@@ -43,6 +42,7 @@ class DlnaBrowser(private val context: Context) {
         val listener = object : RegistryListener {
             override fun remoteDeviceDiscoveryStarted(registry: Registry?, device: RemoteDevice?) {}
             override fun remoteDeviceDiscoveryFailed(registry: Registry?, device: RemoteDevice?, ex: Exception?) {}
+
             override fun remoteDeviceAdded(registry: Registry?, device: RemoteDevice?) {
                 if (device != null) {
                     val name = device.details.friendlyName ?: "DLNA Device"
@@ -71,9 +71,7 @@ class DlnaBrowser(private val context: Context) {
     }
 
     fun stop() {
-        try {
-            upnpService?.shutdown()
-        } catch (_: Exception) {}
+        try { upnpService?.shutdown() } catch (_: Exception) {}
         upnpService = null
         servers.clear()
     }
@@ -85,8 +83,7 @@ class DlnaBrowser(private val context: Context) {
     ) = withContext(Dispatchers.IO) {
 
         val service: Service<*, *> =
-            server.device.findService(UDAServiceType("ContentDirectory"))
-                ?: return@withContext
+            server.device.findService(UDAServiceType("ContentDirectory")) ?: return@withContext
 
         val cp = upnpService?.controlPoint ?: return@withContext
 
@@ -99,26 +96,12 @@ class DlnaBrowser(private val context: Context) {
                 val list = mutableListOf<DlnaEntry>()
 
                 didl?.containers?.forEach { c: Container ->
-                    list.add(
-                        DlnaEntry(
-                            title = c.title ?: "Folder",
-                            isFolder = true,
-                            objectId = c.id
-                        )
-                    )
+                    list.add(DlnaEntry(c.title ?: "Folder", true, c.id))
                 }
 
                 didl?.items?.forEach { i: Item ->
-                    val res = i.resources?.firstOrNull()
-                    val url = res?.value
-                    list.add(
-                        DlnaEntry(
-                            title = i.title ?: "Video",
-                            isFolder = false,
-                            objectId = i.id,
-                            url = url
-                        )
-                    )
+                    val url = i.resources?.firstOrNull()?.value
+                    list.add(DlnaEntry(i.title ?: "Video", false, i.id, url))
                 }
 
                 onResult(list)

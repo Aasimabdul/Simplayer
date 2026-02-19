@@ -33,9 +33,7 @@ class MainActivity : AppCompatActivity() {
     private val videoNames = mutableListOf<String>()
     private var listAdapter: ArrayAdapter<String>? = null
 
-    private val prefs by lazy {
-        getSharedPreferences("simplayer_prefs", Context.MODE_PRIVATE)
-    }
+    private val prefs by lazy { getSharedPreferences("simplayer_prefs", Context.MODE_PRIVATE) }
 
     private val speedList = listOf(1.0f, 1.25f, 1.5f, 2.0f)
     private var speedIndex = 0
@@ -48,13 +46,11 @@ class MainActivity : AppCompatActivity() {
     private var dlnaPathStack = mutableListOf<String>()
     private var dlnaCurrentServer: DlnaServer? = null
 
-    // Folder picker
     private val pickFolder =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { treeUri: Uri? ->
             if (treeUri != null) loadVideosFromFolder(treeUri)
         }
 
-    // Subtitle picker
     private val pickSubtitle =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { subUri: Uri? ->
             if (subUri != null) attachSubtitle(subUri)
@@ -78,6 +74,15 @@ class MainActivity : AppCompatActivity() {
     private fun initPlayer() {
         player = ExoPlayer.Builder(this).build()
         binding.playerView.player = player
+    }
+
+    private fun setupList() {
+        listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, videoNames)
+        binding.videoList.adapter = listAdapter
+
+        binding.videoList.setOnItemClickListener { _, _, position, _ ->
+            playVideo(videoUris[position], resumeIfSame = false)
+        }
     }
 
     private fun setupControls() {
@@ -110,21 +115,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupList() {
-        listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, videoNames)
-        binding.videoList.adapter = listAdapter
-
-        binding.videoList.setOnItemClickListener { _, _, position, _ ->
-            playVideo(videoUris[position], resumeIfSame = false)
-        }
-    }
-
     private fun loadVideosFromFolder(treeUri: Uri) {
         try {
-            contentResolver.takePersistableUriPermission(
-                treeUri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         } catch (_: Exception) {}
 
         videoUris.clear()
@@ -194,6 +187,23 @@ class MainActivity : AppCompatActivity() {
         playVideo(Uri.parse(url), resumeIfSame = false)
     }
 
+    private fun askWebUrl() {
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_TEXT_VARIATION_URI
+        input.hint = "Paste direct MP4/M3U8 link"
+
+        AlertDialog.Builder(this)
+            .setTitle("Play Web Video")
+            .setView(input)
+            .setPositiveButton("Play") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.startsWith("http")) playWebOrDlna(url)
+                else Toast.makeText(this, "Invalid URL", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun attachSubtitle(subUri: Uri) {
         val p = player ?: return
 
@@ -219,37 +229,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectAudioTrack() {
         val p = player ?: return
-
         val params = TrackSelectionParameters.Builder(this)
             .setPreferredAudioLanguage(null)
             .build()
-
         p.trackSelectionParameters = params
-        Toast.makeText(this, "Audio set to default", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun askWebUrl() {
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_TEXT_VARIATION_URI
-        input.hint = "Paste MP4/M3U8 direct link"
-
-        AlertDialog.Builder(this)
-            .setTitle("Play Web Video")
-            .setView(input)
-            .setPositiveButton("Play") { _, _ ->
-                val url = input.text.toString().trim()
-                if (url.startsWith("http")) {
-                    playWebOrDlna(url)
-                } else {
-                    Toast.makeText(this, "Invalid URL", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        Toast.makeText(this, "Audio default", Toast.LENGTH_SHORT).show()
     }
 
     // ==========================
-    // DLNA FULL UI
+    // DLNA
     // ==========================
     private fun openDlnaServers() {
         if (dlnaBrowser == null) dlnaBrowser = DlnaBrowser(this)
@@ -312,11 +300,8 @@ class MainActivity : AppCompatActivity() {
                     browseDlna(entry.objectId)
                 } else {
                     val url = entry.url
-                    if (url != null) {
-                        playWebOrDlna(url)
-                    } else {
-                        Toast.makeText(this, "No playable URL", Toast.LENGTH_SHORT).show()
-                    }
+                    if (url != null) playWebOrDlna(url)
+                    else Toast.makeText(this, "No playable URL", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNeutralButton("Back") { _, _ ->
