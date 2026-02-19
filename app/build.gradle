@@ -33,6 +33,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
 
     // DLNA / UPnP (Cling)
-    implementation "org.fourthline.cling:cling-core:2.1.2"
-    implementation "org.fourthline.cling:cling-support:2.1.2"
+    implementation "com.github.4thline.cling:cling-core:2.1.2"
+    implementation "com.github.4thline.cling:cling-support:2.1.2"
 }
