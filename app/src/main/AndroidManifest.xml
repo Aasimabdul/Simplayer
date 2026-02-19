@@ -2,7 +2,7 @@
 
     <application
         android:label="SimPlayer"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher"
         android:theme="@style/Theme.SimPlayer">
 
         <activity
