@@ -1,3 +1,4 @@
+import android.app.Service
 package com.simplayer.owncompany.dlna
 
 import android.content.Context
