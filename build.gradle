@@ -15,3 +15,10 @@ dependencies {
     implementation 'com.github.4thline.cling:cling-support:2.1.2'
 
 }
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
