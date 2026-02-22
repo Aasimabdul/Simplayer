@@ -9,3 +9,9 @@ allprojects {
         maven { url 'https://jitpack.io' }  // ADD THIS
     }
 }
+dependencies {
+    
+    implementation 'com.github.4thline.cling:cling-core:2.1.2'
+    implementation 'com.github.4thline.cling:cling-support:2.1.2'
+
+}
