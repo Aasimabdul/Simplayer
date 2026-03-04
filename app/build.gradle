@@ -3,11 +3,11 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-android {
 kotlin {
     jvmToolchain(17)
 }
 
+android {
     namespace "com.simplayer.owncompany"
     compileSdk 34
 
@@ -40,6 +40,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
 
     // DLNA / UPnP (Cling)
+    implementation 'com.github.4thline.cling:cling-core:2.1.2'
+    implementation 'com.github.4thline.cling:cling-support:2.1.2'
 }
-implementation 'com.github.4thline.cling:cling-core:2.1.2'
-implementation 'com.github.4thline.cling:cling-support:2.1.2'
