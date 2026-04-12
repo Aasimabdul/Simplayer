@@ -1,29 +1,16 @@
-plugins {
-    id 'com.android.application'
-}
-
-android {
-    namespace 'com.example.simplayer'
-    compileSdk 34
-
-    defaultConfig {
-        applicationId "com.example.simplayer"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
     }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
     }
 }
 
-dependencies {
-    implementation 'com.github.4thline.cling:cling-core:2.1.2'
-    implementation 'com.github.4thline.cling:cling-support:2.1.2'
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
-
-
