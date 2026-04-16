@@ -1,45 +1,48 @@
+// Plugins section: Android + Kotlin support
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
+    id 'com.android.application'      // Android app module
+    id 'org.jetbrains.kotlin.android' // Kotlin support for Android
 }
 
+// Kotlin JVM toolchain setup
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(17) // Use Java 17 for compilation
 }
 
+// Android configuration
 android {
-    namespace "com.simplayer.owncompany"
-    compileSdk 34
+    namespace "com.simplayer.owncompany" // Package namespace
+    compileSdk 34                        // Compile SDK version
 
     defaultConfig {
-        applicationId "com.simplayer.owncompany"
-        minSdk 21
-        targetSdk 34
-        versionCode 17
-        versionName "1.7"
+        applicationId "com.simplayer.owncompany" // Unique app ID
+        minSdk 21                               // Minimum supported Android version
+        targetSdk 34                            // Target Android version
+        versionCode 17                          // Internal version code
+        versionName "1.7"                       // User-visible version name
     }
 
     buildFeatures {
-        viewBinding true
+        viewBinding true // Enable ViewBinding for easier UI code
     }
 }
 
+// Dependencies section
 dependencies {
-    implementation "com.github.4thline.cling:cling-core:2.1.1"
-    implementation "com.github.4thline.cling:cling-support:2.1.1"
+    // --- Android core libraries ---
+    implementation "androidx.appcompat:appcompat:1.7.0"   // AppCompat support
+    implementation "androidx.core:core-ktx:1.13.1"        // Kotlin extensions
+    implementation "com.google.android.material:material:1.12.0" // Material Design components
 
-    implementation "androidx.appcompat:appcompat:1.7.0"
-    implementation "androidx.core:core-ktx:1.13.1"
-    implementation "com.google.android.material:material:1.12.0"
-
-    // Media3 ExoPlayer
+    // --- Media3 ExoPlayer for video/audio playback ---
     implementation "androidx.media3:media3-exoplayer:1.3.1"
     implementation "androidx.media3:media3-ui:1.3.1"
 
-    // Coroutines
+    // --- Kotlin Coroutines for async/background tasks ---
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
 
-    // DLNA / UPnP (Cling)
-    implementation 'com.github.4thline.cling:cling-core:2.1.2'
-    implementation 'com.github.4thline.cling:cling-support:2.1.2'
+    // --- DLNA / UPnP (Cling) for media sharing ---
+    // Use only latest stable version (2.1.2)
+    implementation "com.github.4thline.cling:cling-core:2.1.2"
+    implementation "com.github.4thline.cling:cling-support:2.1.2"
 }
