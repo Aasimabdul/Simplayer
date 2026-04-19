@@ -23,6 +23,13 @@ import com.simplayer.owncompany.dlna.DlnaEntry
 import com.simplayer.owncompany.dlna.DlnaServer
 import kotlinx.coroutines.*
 
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.simplayer.owncompany.dlna.VideoAdapter
+import android.view.View
+import android.view.animation.AnimationUtils
+import android.webkit.MimeTypeMap
+
 @UnstableApi
 class MainActivity : AppCompatActivity() {
 
@@ -31,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
     private val videoUris = mutableListOf<Uri>()
     private val videoNames = mutableListOf<String>()
-    private var listAdapter: ArrayAdapter<String>? = null
+    private lateinit var videoAdapter: VideoAdapter
 
     private val prefs by lazy { getSharedPreferences("simplayer_prefs", Context.MODE_PRIVATE) }
 
@@ -77,42 +84,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupList() {
-        listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, videoNames)
-        binding.videoList.adapter = listAdapter
-
-        binding.videoList.setOnItemClickListener { _, _, position, _ ->
+        videoAdapter = VideoAdapter(videoNames) { position ->
             playVideo(videoUris[position], resumeIfSame = false)
+        }
+        binding.videoRecycler.layoutManager = LinearLayoutManager(this)
+        binding.videoRecycler.adapter = videoAdapter
+        
+        // Add a simple fade-in animation to the recycler view
+        val controller = AnimationUtils.loadLayoutAnimation(this, android.R.anim.fade_in)
+        binding.videoRecycler.layoutAnimation = controller
+    }
+
+    private fun updateList() {
+        if (videoNames.isEmpty()) {
+            binding.emptyState.visibility = View.VISIBLE
+            binding.videoRecycler.visibility = View.GONE
+        } else {
+            binding.emptyState.visibility = View.GONE
+            binding.videoRecycler.visibility = View.VISIBLE
+            videoAdapter.notifyDataSetChanged()
+            binding.videoRecycler.scheduleLayoutAnimation()
         }
     }
 
     private fun setupControls() {
-        binding.btnBack10.setOnClickListener {
-            val p = player ?: return@setOnClickListener
-            p.seekTo((p.currentPosition - 10_000).coerceAtLeast(0))
-        }
-
-        binding.btnForward10.setOnClickListener {
-            val p = player ?: return@setOnClickListener
-            val dur = p.duration
-            val newPos = if (dur > 0) (p.currentPosition + 10_000).coerceAtMost(dur) else p.currentPosition + 10_000
-            p.seekTo(newPos)
-        }
-
-        binding.btnSpeed.setOnClickListener {
-            val p = player ?: return@setOnClickListener
-            speedIndex = (speedIndex + 1) % speedList.size
-            val sp = speedList[speedIndex]
-            p.playbackParameters = PlaybackParameters(sp)
-            binding.btnSpeed.text = "${sp}x"
-        }
-
-        binding.btnSub.setOnClickListener {
-            pickSubtitle.launch(arrayOf("application/x-subrip", "text/plain", "application/octet-stream"))
-        }
-
-        binding.btnAudio.setOnClickListener {
-            selectAudioTrack()
-        }
+        // We now use ExoPlayer's default controller in the improved UI
+        // But keeping the logic if custom buttons are added back
     }
 
     private fun loadVideosFromFolder(treeUri: Uri) {
@@ -135,7 +132,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        listAdapter?.notifyDataSetChanged()
+        updateList()
         resumeLastIfPossible()
     }
 
@@ -158,7 +155,7 @@ class MainActivity : AppCompatActivity() {
 
         val index = videoUris.indexOfFirst { it.toString() == lastUri.toString() }
         if (index != -1) {
-            binding.videoList.setSelection(index)
+            binding.videoRecycler.scrollToPosition(index)
             playVideo(lastUri, resumeIfSame = true, resumePosition = lastPos)
         } else if (videoUris.isNotEmpty()) {
             playVideo(videoUris[0], resumeIfSame = false)

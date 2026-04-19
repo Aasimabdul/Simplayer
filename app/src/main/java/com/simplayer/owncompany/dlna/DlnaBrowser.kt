@@ -1,4 +1,3 @@
-import android.app.Service
 package com.simplayer.owncompany.dlna
 
 import android.content.Context
@@ -8,9 +7,9 @@ import kotlinx.coroutines.withContext
 import org.fourthline.cling.UpnpService
 import org.fourthline.cling.UpnpServiceImpl
 import org.fourthline.cling.android.AndroidUpnpServiceConfiguration
-import org.fourthline.cling.controlpoint.ActionCallback
 import org.fourthline.cling.model.action.ActionInvocation
 import org.fourthline.cling.model.meta.Device
+import org.fourthline.cling.model.meta.LocalDevice
 import org.fourthline.cling.model.meta.RemoteDevice
 import org.fourthline.cling.model.meta.Service
 import org.fourthline.cling.model.types.UDAServiceType
@@ -41,29 +40,27 @@ class DlnaBrowser(private val context: Context) {
         upnpService = UpnpServiceImpl(AndroidUpnpServiceConfiguration())
 
         val listener = object : RegistryListener {
-            override fun remoteDeviceDiscoveryStarted(registry: Registry?, device: RemoteDevice?) {}
-            override fun remoteDeviceDiscoveryFailed(registry: Registry?, device: RemoteDevice?, ex: Exception?) {}
+            override fun remoteDeviceDiscoveryStarted(registry: Registry, device: RemoteDevice) {}
+            override fun remoteDeviceDiscoveryFailed(registry: Registry, device: RemoteDevice, ex: Exception) {}
 
-            override fun remoteDeviceAdded(registry: Registry?, device: RemoteDevice?) {
-                if (device != null) {
-                    val name = device.details.friendlyName ?: "DLNA Device"
-                    if (device.findService(UDAServiceType("ContentDirectory")) != null) {
-                        servers.add(DlnaServer(name, device))
-                        onUpdate(servers.toList())
-                    }
-                }
-            }
-
-            override fun remoteDeviceRemoved(registry: Registry?, device: RemoteDevice?) {
-                if (device != null) {
-                    servers.removeAll { it.device.identity.udn == device.identity.udn }
+            override fun remoteDeviceAdded(registry: Registry, device: RemoteDevice) {
+                val name = device.details.friendlyName ?: "DLNA Device"
+                if (device.findService(UDAServiceType("ContentDirectory")) != null) {
+                    servers.add(DlnaServer(name, device))
                     onUpdate(servers.toList())
                 }
             }
 
-            override fun localDeviceAdded(registry: Registry?, device: Device<*, *, *>?) {}
-            override fun localDeviceRemoved(registry: Registry?, device: Device<*, *, *>?) {}
-            override fun beforeShutdown(registry: Registry?) {}
+            override fun remoteDeviceUpdated(registry: Registry, device: RemoteDevice) {}
+
+            override fun remoteDeviceRemoved(registry: Registry, device: RemoteDevice) {
+                servers.removeAll { it.device.identity.udn == device.identity.udn }
+                onUpdate(servers.toList())
+            }
+
+            override fun localDeviceAdded(registry: Registry, device: LocalDevice) {}
+            override fun localDeviceRemoved(registry: Registry, device: LocalDevice) {}
+            override fun beforeShutdown(registry: Registry) {}
             override fun afterShutdown() {}
         }
 
@@ -91,16 +88,16 @@ class DlnaBrowser(private val context: Context) {
         cp.execute(object : Browse(service, objectId, BrowseFlag.DIRECT_CHILDREN) {
 
             override fun received(
-                invocation: ActionInvocation<out Service<*, *>>?,
-                didl: DIDLContent?
+                invocation: ActionInvocation<*>,
+                didl: DIDLContent
             ) {
                 val list = mutableListOf<DlnaEntry>()
 
-                didl?.containers?.forEach { c: Container ->
+                didl.containers?.forEach { c: Container ->
                     list.add(DlnaEntry(c.title ?: "Folder", true, c.id))
                 }
 
-                didl?.items?.forEach { i: Item ->
+                didl.items?.forEach { i: Item ->
                     val url = i.resources?.firstOrNull()?.value
                     list.add(DlnaEntry(i.title ?: "Video", false, i.id, url))
                 }
@@ -111,7 +108,7 @@ class DlnaBrowser(private val context: Context) {
             override fun updateStatus(status: Status?) {}
 
             override fun failure(
-                invocation: ActionInvocation<out Service<*, *>>?,
+                invocation: ActionInvocation<*>,
                 operation: org.fourthline.cling.model.message.UpnpResponse?,
                 defaultMsg: String?
             ) {

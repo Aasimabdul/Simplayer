@@ -3,15 +3,15 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <application
         android:allowBackup="true"
         android:label="SimPlayer"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:theme="@style/Theme.SimPlayer"
         android:supportsRtl="true">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.simplayer.owncompany.MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
