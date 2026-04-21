@@ -28,7 +28,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.simplayer.owncompany.dlna.VideoAdapter
 import android.view.View
 import android.view.animation.AnimationUtils
-import android.webkit.MimeTypeMap
+import android.util.Log
+
+import android.Manifest
+import android.os.Build
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 
 @UnstableApi
 class MainActivity : AppCompatActivity() {
@@ -53,6 +60,16 @@ class MainActivity : AppCompatActivity() {
     private var dlnaPathStack = mutableListOf<String>()
     private var dlnaCurrentServer: DlnaServer? = null
 
+    private val requestPermissionLauncher = 
+        registerForActivityResult(RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission granted, you can load videos if needed
+                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Permission Denied. Local videos won't show.", Toast.LENGTH_LONG).show()
+            }
+        }
+
     private val pickFolder =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { treeUri: Uri? ->
             if (treeUri != null) loadVideosFromFolder(treeUri)
@@ -66,16 +83,37 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        initPlayer()
-        setupList()
-        setupControls()
+            checkPermissions()
+            initPlayer()
+            setupList()
+            setupControls()
 
-        binding.btnPickFolder.setOnClickListener { pickFolder.launch(null) }
-        binding.btnWeb.setOnClickListener { askWebUrl() }
-        binding.btnDlna.setOnClickListener { openDlnaServers() }
+            binding.btnPickFolder.setOnClickListener { pickFolder.launch(null) }
+            binding.btnWeb.setOnClickListener { askWebUrl() }
+            binding.btnDlna.setOnClickListener { openDlnaServers() }
+            
+            updateList()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in onCreate", e)
+            Toast.makeText(this, "Initialization error: ${e.message}", Toast.LENGTH_LONG).show()
+            finish()
+        }
+    }
+
+    private fun checkPermissions() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_VIDEO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(permission)
+        }
     }
 
     private fun initPlayer() {
@@ -89,10 +127,6 @@ class MainActivity : AppCompatActivity() {
         }
         binding.videoRecycler.layoutManager = LinearLayoutManager(this)
         binding.videoRecycler.adapter = videoAdapter
-        
-        // Add a simple fade-in animation to the recycler view
-        val controller = AnimationUtils.loadLayoutAnimation(this, android.R.anim.fade_in)
-        binding.videoRecycler.layoutAnimation = controller
     }
 
     private fun updateList() {
