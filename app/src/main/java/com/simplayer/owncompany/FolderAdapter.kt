@@ -1,28 +1,37 @@
+package com.simplayer.owncompany
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.simplayer.owncompany.databinding.ListItemFolderBinding
+
 class FolderAdapter(
-    private val list: List<VideoFolder>,
-    private val onClick: (VideoFolder) -> Unit
-) : RecyclerView.Adapter<FolderAdapter.VH>() {
+    private val folders: List<VideoFolder>,
+    private val onFolderClick: (VideoFolder) -> Unit
+) : RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
-    class VH(view: View) : RecyclerView.ViewHolder(view) {
-        val name: TextView = view.findViewById(android.R.id.text1)
-        val count: TextView = view.findViewById(android.R.id.text2)
+    class ViewHolder(val binding: ListItemFolderBinding) : RecyclerView.ViewHolder(binding.root)
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ListItemFolderBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(binding)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(android.R.layout.simple_list_item_2, parent, false)
-        return VH(view)
-    }
-
-    override fun getItemCount() = list.size
-
-    override fun onBindViewHolder(holder: VH, position: Int) {
-        val folder = list[position]
-        holder.name.text = folder.name
-        holder.count.text = "${folder.videos.size} videos"
-
-        holder.itemView.setOnClickListener {
-            onClick(folder)
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val folder = folders[position]
+        holder.binding.tvFolderName.text = folder.name
+        holder.binding.tvVideoCount.text = String.format("%d videos", folder.videoCount)
+        
+        if (folder.isNew > 0) {
+            holder.binding.tvNewTag.visibility = View.VISIBLE
+            holder.binding.tvNewTag.text = folder.isNew.toString()
+        } else {
+            holder.binding.tvNewTag.visibility = View.GONE
         }
+
+        holder.itemView.setOnClickListener { onFolderClick(folder) }
     }
+
+    override fun getItemCount(): Int = folders.size
 }

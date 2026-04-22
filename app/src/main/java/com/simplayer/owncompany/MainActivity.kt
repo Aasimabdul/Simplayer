@@ -31,6 +31,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.simplayer.owncompany.databinding.ActivityMainBinding
+import java.io.File
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -41,11 +42,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var player: ExoPlayer? = null
     private var videoList = mutableListOf<VideoModel>()
+    private var folderList = mutableListOf<VideoFolder>()
     private val handler = Handler(Looper.getMainLooper())
     private var isControlsVisible = true
 
     private lateinit var audioManager: AudioManager
     private var currentBrightness = 0.5f
+    private var isFolderView = true
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -63,19 +66,23 @@ class MainActivity : AppCompatActivity() {
         currentBrightness = window.attributes.screenBrightness
         if (currentBrightness < 0) currentBrightness = 0.5f
 
-        setupRecyclerView()
+        setupToolbar()
         checkPermissions()
         setupPlayerUI()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (binding.playerContainer.visibility == View.VISIBLE) {
-                    closePlayer()
-                } else {
-                    finish()
+                when {
+                    binding.playerContainer.visibility == View.VISIBLE -> closePlayer()
+                    !isFolderView -> showFolderView()
+                    else -> finish()
                 }
             }
         })
+    }
+
+    private fun setupToolbar() {
+        binding.toolbar.title = "Folders"
     }
 
     private fun checkPermissions() {
@@ -94,11 +101,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadVideos() {
         videoList.clear()
+        folderList.clear()
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
-            MediaStore.Video.Media.SIZE
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATA
         )
 
         val cursor = contentResolver.query(
@@ -106,32 +115,57 @@ class MainActivity : AppCompatActivity() {
             projection, null, null, MediaStore.Video.Media.DATE_ADDED + " DESC"
         )
 
+        val folderMap = mutableMapOf<String, VideoFolder>()
+
         cursor?.use {
             val idCol = it.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
             val nameCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val dataCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
 
             while (it.moveToNext()) {
                 val id = it.getLong(idCol)
+                val path = it.getString(dataCol)
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
-                videoList.add(
-                    VideoModel(
-                        id,
-                        it.getString(nameCol),
-                        uri.toString(),
-                        it.getLong(durationCol),
-                        it.getLong(sizeCol)
-                    )
+                
+                val video = VideoModel(
+                    id,
+                    it.getString(nameCol),
+                    uri.toString(),
+                    it.getLong(durationCol),
+                    it.getLong(sizeCol)
                 )
+                
+                videoList.add(video)
+
+                val file = File(path)
+                val folderPath = file.parent ?: "Internal Storage"
+                val folderName = File(folderPath).name
+
+                if (!folderMap.containsKey(folderPath)) {
+                    folderMap[folderPath] = VideoFolder(folderName, folderPath)
+                }
+                folderMap[folderPath]?.videos?.add(video)
             }
         }
-        binding.videoRecyclerView.adapter?.notifyDataSetChanged()
+        folderList.addAll(folderMap.values)
+        showFolderView()
     }
 
-    private fun setupRecyclerView() {
+    private fun showFolderView() {
+        isFolderView = true
+        binding.toolbar.title = "Folders"
         binding.videoRecyclerView.layoutManager = LinearLayoutManager(this)
-        binding.videoRecyclerView.adapter = VideoAdapter(videoList) { video ->
+        binding.videoRecyclerView.adapter = FolderAdapter(folderList) { folder ->
+            showVideoView(folder)
+        }
+    }
+
+    private fun showVideoView(folder: VideoFolder) {
+        isFolderView = false
+        binding.toolbar.title = folder.name
+        binding.videoRecyclerView.adapter = VideoAdapter(folder.videos) { video ->
             openPlayer(video)
         }
     }
