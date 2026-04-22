@@ -277,8 +277,11 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        binding.gestureView.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
+        binding.gestureView.setOnTouchListener { view, event ->
+            val handled = gestureDetector.onTouchEvent(event)
+            if (!handled && event.action == MotionEvent.ACTION_UP) {
+                view.performClick()
+            }
             true
         }
     }
@@ -307,7 +310,7 @@ class MainActivity : AppCompatActivity() {
         val speeds = arrayOf("0.5x", "1.0x", "1.5x", "2.0x")
         val speedValues = floatArrayOf(0.5f, 1.0f, 1.5f, 2.0f)
         
-        androidx.appcompat.app.AlertDialog.Builder(this, R.style.Theme_AppCompat_Dialog_Alert)
+        androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Playback Speed")
             .setItems(speeds) { _, which ->
                 player?.setPlaybackSpeed(speedValues[which])
@@ -332,5 +335,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         player?.release()
+        handler.removeCallbacksAndMessages(null)
     }
 }
